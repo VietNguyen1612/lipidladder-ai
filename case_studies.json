@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Case 1 — Post-MI, chưa đạt LDL (yêu cầu bắt buộc)",
+    "summary": "Nam 58 tuổi, NMCT cách 6 tháng, đang dùng Atorvastatin 40 mg. LDL-C = 95 mg/dL. Cần thêm thuốc để đạt mục tiêu <55 mg/dL.",
+    "patient": {
+      "age": 58, "sex": "M", "baseline_ldl": 180,
+      "smoker": true, "diabetes": false, "ascvd": true, "fh": false,
+      "ckd_egfr": 80, "sbp": 138, "total_chol": 250, "hdl": 42,
+      "lp_a": 40, "statin_intolerant": false
+    }
+  },
+  {
+    "name": "Case 2 — Statin intolerant (cơ)",
+    "summary": "Nữ 65 tuổi, không dung nạp statin (đau cơ tái phát). LDL nền 165 mg/dL, ASCVD documented.",
+    "patient": {
+      "age": 65, "sex": "F", "baseline_ldl": 165,
+      "smoker": false, "diabetes": true, "ascvd": true, "fh": false,
+      "ckd_egfr": 65, "sbp": 145, "total_chol": 235, "hdl": 48,
+      "lp_a": 20, "statin_intolerant": true
+    }
+  },
+  {
+    "name": "Case 3 — FH primary prevention",
+    "summary": "Nam 42 tuổi, FH (heterozygous), chưa ASCVD. LDL nền 220 mg/dL.",
+    "patient": {
+      "age": 42, "sex": "M", "baseline_ldl": 220,
+      "smoker": false, "diabetes": false, "ascvd": false, "fh": true,
+      "ckd_egfr": 95, "sbp": 125, "total_chol": 290, "hdl": 50,
+      "lp_a": 60, "statin_intolerant": false
+    }
+  },
+  {
+    "name": "Case 4 — Primary prevention, nguy cơ trung bình",
+    "summary": "Nữ 48 tuổi, không bệnh nền, LDL 145 mg/dL, HA 130/80.",
+    "patient": {
+      "age": 48, "sex": "F", "baseline_ldl": 145,
+      "smoker": false, "diabetes": false, "ascvd": false, "fh": false,
+      "ckd_egfr": 100, "sbp": 130, "total_chol": 210, "hdl": 58,
+      "lp_a": 15, "statin_intolerant": false
+    }
+  }
+]
