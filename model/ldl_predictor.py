@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 import joblib
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -71,26 +69,16 @@ def load(model_path: str = "model/ldl_model.joblib"):
 
 
 def predict_for_patient(bundle: dict, patient: "Patient", step: dict) -> float:
-    row = {
-        "age": patient.age,
-        "sex_M": 1 if patient.sex == "M" else 0,
-        "baseline_ldl": patient.baseline_ldl,
-        "smoker": int(patient.smoker),
-        "diabetes": int(patient.diabetes),
-        "ascvd": int(patient.ascvd),
-        "fh": int(patient.fh),
-        "ckd_egfr": patient.ckd_egfr,
-        "sbp": patient.sbp,
-        "total_chol": patient.total_chol,
-        "hdl": patient.hdl,
-        "lp_a": patient.lp_a,
-        "statin_moderate": 1 if step["statin"] == "moderate" else 0,
-        "statin_high": 1 if step["statin"] == "high" else 0,
-        "ezetimibe": int(step["ezetimibe"]),
-        "pcsk9": int(step["pcsk9"]),
-        "bempedoic": int(step["bempedoic"]),
-    }
-    X = pd.DataFrame([row])[bundle["features"]]
+    raw = pd.DataFrame([{
+        "age": patient.age, "sex": patient.sex, "baseline_ldl": patient.baseline_ldl,
+        "smoker": patient.smoker, "diabetes": patient.diabetes,
+        "ascvd": patient.ascvd, "fh": patient.fh,
+        "ckd_egfr": patient.ckd_egfr, "sbp": patient.sbp,
+        "total_chol": patient.total_chol, "hdl": patient.hdl, "lp_a": patient.lp_a,
+        "statin": step["statin"], "ezetimibe": step["ezetimibe"],
+        "pcsk9": step["pcsk9"], "bempedoic": step["bempedoic"],
+    }])
+    X = _encode(raw)[bundle["features"]]
     return float(bundle["model"].predict(X)[0])
 
 

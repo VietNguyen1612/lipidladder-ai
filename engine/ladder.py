@@ -73,7 +73,7 @@ def classify_risk(p: Patient) -> RiskCategory:
     return "low"
 
 
-def ldl_target(risk: RiskCategory, secondary_prevention: bool = False) -> float:
+def ldl_target(risk: RiskCategory) -> float:
     """Return LDL-C target in mg/dL per Figure 1."""
     if risk == "very_high":
         return 55.0

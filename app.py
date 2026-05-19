@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import json
 import os
+from functools import partial
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from engine.ladder import Patient, recommend_step, classify_risk, ldl_target, THERAPY_STEPS
+from engine.ladder import Patient, recommend_step
+from i18n import LANGUAGES, risk_label, step_label, t
 from model import ldl_predictor
 
 MODEL_PATH = "model/ldl_model.joblib"
@@ -39,18 +41,27 @@ def load_cases():
 
 # ---------- UI ----------
 st.set_page_config(page_title="LipidLadder AI", layout="wide", page_icon="💊")
-st.title("💊 LipidLadder AI")
-st.caption("ESC/EAS 2025 stepwise lipid-lowering recommender — statin + ezetimibe demo")
+
+# Language selector first so every label below can use it
+lang_label = st.sidebar.selectbox(
+    "🌐 " + " / ".join(LANGUAGES.keys()),
+    list(LANGUAGES.keys()),
+    index=1,
+)
+lang = LANGUAGES[lang_label]
+
+st.title(t("app_title", lang))
+st.caption(t("app_caption", lang))
 
 bundle = get_model_bundle()
 cases = load_cases()
 
 with st.sidebar:
-    st.header("Patient input")
+    st.header(t("patient_input", lang))
 
-    case_names = ["(blank)"] + [c["name"] for c in cases]
-    chosen_case = st.selectbox("Pre-loaded case", case_names, index=1)
-    if chosen_case != "(blank)":
+    case_names = [t("blank", lang)] + [c["name"] for c in cases]
+    chosen_case = st.selectbox(t("preloaded_case", lang), case_names, index=1)
+    if chosen_case != t("blank", lang):
         case = next(c for c in cases if c["name"] == chosen_case)
         st.info(case["summary"])
         defaults = case["patient"]
@@ -62,22 +73,28 @@ with st.sidebar:
             "lp_a": 20, "statin_intolerant": False,
         }
 
-    age = st.slider("Age", 30, 90, defaults["age"])
-    sex = st.radio("Sex", ["M", "F"], index=0 if defaults["sex"] == "M" else 1, horizontal=True)
-    baseline_ldl = st.number_input("Untreated LDL-C (mg/dL)", 50.0, 350.0, float(defaults["baseline_ldl"]))
-    total_chol = st.number_input("Total cholesterol (mg/dL)", 100.0, 450.0, float(defaults["total_chol"]))
-    hdl = st.number_input("HDL-C (mg/dL)", 20.0, 110.0, float(defaults["hdl"]))
-    sbp = st.slider("Systolic BP", 90, 220, int(defaults["sbp"]))
-    ckd_egfr = st.slider("eGFR (mL/min/1.73m²)", 10.0, 130.0, float(defaults["ckd_egfr"]))
+    age = st.slider(t("age", lang), 30, 90, defaults["age"])
+    sex_options = [t("sex_M", lang), t("sex_F", lang)]
+    sex_choice = st.radio(
+        t("sex", lang), sex_options,
+        index=0 if defaults["sex"] == "M" else 1, horizontal=True,
+    )
+    sex = "M" if sex_choice == t("sex_M", lang) else "F"
+
+    baseline_ldl = st.number_input(t("baseline_ldl", lang), 50.0, 350.0, float(defaults["baseline_ldl"]))
+    total_chol = st.number_input(t("total_chol", lang), 100.0, 450.0, float(defaults["total_chol"]))
+    hdl = st.number_input(t("hdl", lang), 20.0, 110.0, float(defaults["hdl"]))
+    sbp = st.slider(t("sbp", lang), 90, 220, int(defaults["sbp"]))
+    ckd_egfr = st.slider(t("ckd_egfr", lang), 10.0, 130.0, float(defaults["ckd_egfr"]))
 
     col1, col2 = st.columns(2)
-    smoker   = col1.checkbox("Smoker",   value=defaults["smoker"])
-    diabetes = col2.checkbox("Diabetes", value=defaults["diabetes"])
-    ascvd    = col1.checkbox("ASCVD",    value=defaults["ascvd"])
-    fh       = col2.checkbox("FH",       value=defaults["fh"])
-    intolerant = st.checkbox("Statin intolerant", value=defaults["statin_intolerant"])
+    smoker   = col1.checkbox(t("smoker", lang),   value=defaults["smoker"])
+    diabetes = col2.checkbox(t("diabetes", lang), value=defaults["diabetes"])
+    ascvd    = col1.checkbox(t("ascvd", lang),    value=defaults["ascvd"])
+    fh       = col2.checkbox(t("fh", lang),       value=defaults["fh"])
+    intolerant = st.checkbox(t("statin_intolerant", lang), value=defaults["statin_intolerant"])
 
-    lp_a = st.number_input("Lp(a) (nmol/L)", 0.0, 400.0, float(defaults["lp_a"]))
+    lp_a = st.number_input(t("lp_a", lang), 0.0, 400.0, float(defaults["lp_a"]))
 
 # ---------- build patient + run recommendation ----------
 patient = Patient(
@@ -86,49 +103,55 @@ patient = Patient(
     lp_a=lp_a, statin_intolerant=intolerant,
 )
 
-predict = lambda p, step: ldl_predictor.predict_for_patient(bundle, p, step)
-result = recommend_step(patient, predict)
+result = recommend_step(patient, partial(ldl_predictor.predict_for_patient, bundle))
 
 # ---------- output ----------
 top = st.columns(3)
-top[0].metric("Risk category", result["risk"].replace("_", " ").upper())
-top[1].metric("LDL-C target", f"< {result['target']:.0f} mg/dL")
-top[2].metric("Untreated LDL", f"{patient.baseline_ldl:.0f} mg/dL")
+top[0].metric(t("risk_category", lang), risk_label(result["risk"], lang))
+top[1].metric(t("ldl_target", lang), f"< {result['target']:.0f} mg/dL")
+top[2].metric(t("untreated_ldl", lang), f"{patient.baseline_ldl:.0f} mg/dL")
 
-st.subheader("Recommended therapy step")
-st.success(f"➡️  **{result['chosen_step']['label']}**")
+st.subheader(t("recommended_step", lang))
+st.success(f"➡️  **{step_label(result['chosen_step']['id'], lang)}**")
 
-st.subheader("Stepwise ladder — predicted LDL-C at each rung")
+st.subheader(t("ladder_title", lang))
 traj = result["trajectory"]
 df = pd.DataFrame([
-    {"Step": t["step"]["label"], "Predicted LDL": t["predicted_ldl"], "Viable": t["viable"]}
-    for t in traj
+    {
+        t("col_step", lang): step_label(tr["step"]["id"], lang),
+        t("col_predicted", lang): tr["predicted_ldl"],
+        t("col_viable", lang): tr["viable"],
+    }
+    for tr in traj
 ])
 
 fig, ax = plt.subplots(figsize=(9, 4.5))
 colors = []
-for t in traj:
-    if not t["viable"]:
+for tr in traj:
+    if not tr["viable"]:
         colors.append("#aaaaaa")
-    elif t["step"]["id"] == result["chosen_step"]["id"]:
+    elif tr["step"]["id"] == result["chosen_step"]["id"]:
         colors.append("#2e7d32")
-    elif t["predicted_ldl"] <= result["target"]:
+    elif tr["predicted_ldl"] <= result["target"]:
         colors.append("#a5d6a7")
     else:
         colors.append("#ef5350")
-ax.barh(df["Step"], df["Predicted LDL"], color=colors)
-ax.axvline(result["target"], linestyle="--", color="black", label=f"Target < {result['target']:.0f}")
+ax.barh(df[t("col_step", lang)], df[t("col_predicted", lang)], color=colors)
+ax.axvline(
+    result["target"], linestyle="--", color="black",
+    label=f"{t('target_legend', lang)} {result['target']:.0f}",
+)
 ax.invert_yaxis()
-ax.set_xlabel("Predicted post-treatment LDL-C (mg/dL)")
+ax.set_xlabel(t("x_axis", lang))
 ax.legend(loc="lower right")
 st.pyplot(fig)
 
-with st.expander("Show numeric table"):
-    st.dataframe(df.style.format({"Predicted LDL": "{:.1f}"}), width="stretch")
+with st.expander(t("show_table", lang)):
+    st.dataframe(df.style.format({t("col_predicted", lang): "{:.1f}"}), width="stretch")
 
 st.divider()
-st.caption(
-    f"Model: GradientBoostingRegressor | MAE = {bundle['metrics']['mae']:.2f} mg/dL · "
-    f"R² = {bundle['metrics']['r2']:.3f} (n_test = {bundle['metrics']['n_test']})"
-)
-st.caption("Educational demo for the ESC/EAS 2025 Focused Update — not for clinical use.")
+st.caption(t(
+    "model_caption", lang,
+    mae=bundle["metrics"]["mae"], r2=bundle["metrics"]["r2"], n=bundle["metrics"]["n_test"],
+))
+st.caption(t("disclaimer", lang))
