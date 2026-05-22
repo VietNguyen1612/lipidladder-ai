@@ -38,7 +38,6 @@ def load_cases():
     with open(CASES_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
-
 # ---------- UI ----------
 st.set_page_config(page_title="LipidLadder AI", layout="wide", page_icon="💊")
 
@@ -96,62 +95,104 @@ with st.sidebar:
 
     lp_a = st.number_input(t("lp_a", lang), 0.0, 400.0, float(defaults["lp_a"]))
 
-# ---------- build patient + run recommendation ----------
-patient = Patient(
-    age=age, sex=sex, baseline_ldl=baseline_ldl, smoker=smoker, diabetes=diabetes,
-    ascvd=ascvd, fh=fh, ckd_egfr=ckd_egfr, sbp=sbp, total_chol=total_chol, hdl=hdl,
-    lp_a=lp_a, statin_intolerant=intolerant,
-)
+tab_calc, tab_dataset = st.tabs([t("tab_calculator", lang), t("tab_dataset", lang)])
 
-result = recommend_step(patient, partial(ldl_predictor.predict_for_patient, bundle))
+with tab_calc:
+    # ---------- build patient + run recommendation ----------
+    patient = Patient(
+        age=age, sex=sex, baseline_ldl=baseline_ldl, smoker=smoker, diabetes=diabetes,
+        ascvd=ascvd, fh=fh, ckd_egfr=ckd_egfr, sbp=sbp, total_chol=total_chol, hdl=hdl,
+        lp_a=lp_a, statin_intolerant=intolerant,
+    )
 
-# ---------- output ----------
-top = st.columns(3)
-top[0].metric(t("risk_category", lang), risk_label(result["risk"], lang))
-top[1].metric(t("ldl_target", lang), f"< {result['target']:.0f} mg/dL")
-top[2].metric(t("untreated_ldl", lang), f"{patient.baseline_ldl:.0f} mg/dL")
+    result = recommend_step(patient, partial(ldl_predictor.predict_for_patient, bundle))
 
-st.subheader(t("recommended_step", lang))
-st.success(f"➡️  **{step_label(result['chosen_step']['id'], lang)}**")
+    # ---------- output ----------
+    top = st.columns(3)
+    top[0].metric(t("risk_category", lang), risk_label(result["risk"], lang))
+    top[1].metric(t("ldl_target", lang), f"< {result['target']:.0f} mg/dL")
+    top[2].metric(t("untreated_ldl", lang), f"{patient.baseline_ldl:.0f} mg/dL")
 
-st.subheader(t("ladder_title", lang))
-traj = result["trajectory"]
-df = pd.DataFrame([
-    {
-        t("col_step", lang): step_label(tr["step"]["id"], lang),
-        t("col_predicted", lang): tr["predicted_ldl"],
-        t("col_viable", lang): tr["viable"],
-    }
-    for tr in traj
-])
+    st.subheader(t("recommended_step", lang))
+    st.success(f"➡️  **{step_label(result['chosen_step']['id'], lang)}**")
 
-fig, ax = plt.subplots(figsize=(9, 4.5))
-colors = []
-for tr in traj:
-    if not tr["viable"]:
-        colors.append("#aaaaaa")
-    elif tr["step"]["id"] == result["chosen_step"]["id"]:
-        colors.append("#2e7d32")
-    elif tr["predicted_ldl"] <= result["target"]:
-        colors.append("#a5d6a7")
+    st.subheader(t("ladder_title", lang))
+    traj = result["trajectory"]
+    df = pd.DataFrame([
+        {
+            t("col_step", lang): step_label(tr["step"]["id"], lang),
+            t("col_predicted", lang): tr["predicted_ldl"],
+            t("col_viable", lang): tr["viable"],
+        }
+        for tr in traj
+    ])
+
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    colors = []
+    for tr in traj:
+        if not tr["viable"]:
+            colors.append("#aaaaaa")
+        elif tr["step"]["id"] == result["chosen_step"]["id"]:
+            colors.append("#2e7d32")
+        elif tr["predicted_ldl"] <= result["target"]:
+            colors.append("#a5d6a7")
+        else:
+            colors.append("#ef5350")
+    ax.barh(df[t("col_step", lang)], df[t("col_predicted", lang)], color=colors)
+    ax.axvline(
+        result["target"], linestyle="--", color="black",
+        label=f"{t('target_legend', lang)} {result['target']:.0f}",
+    )
+    ax.invert_yaxis()
+    ax.set_xlabel(t("x_axis", lang))
+    ax.legend(loc="lower right")
+    st.pyplot(fig)
+
+    with st.expander(t("show_table", lang)):
+        st.dataframe(df.style.format({t("col_predicted", lang): "{:.1f}"}), width="stretch")
+
+    st.divider()
+    st.caption(t(
+        "model_caption", lang,
+        mae=bundle["metrics"]["mae"], r2=bundle["metrics"]["r2"], n=bundle["metrics"]["n_test"],
+    ))
+    st.caption(t("disclaimer", lang))
+
+with tab_dataset:
+    st.subheader(t("tab_dataset", lang))
+    st.markdown(t("dataset_desc", lang))
+    
+    if os.path.exists(COHORT_PATH):
+        df_cohort = pd.read_csv(COHORT_PATH)
+        
+        def get_treatment_label(row):
+            parts = []
+            if row["statin"] == "high":
+                parts.append("High Statin")
+            elif row["statin"] == "moderate":
+                parts.append("Mod Statin")
+            if row["ezetimibe"]:
+                parts.append("EZE")
+            if row["pcsk9"]:
+                parts.append("PCSK9i")
+            if row["bempedoic"]:
+                parts.append("Bempedoic")
+            if not parts:
+                return "Lifestyle Only"
+            return " + ".join(parts)
+            
+        df_cohort["Treatment"] = df_cohort.apply(get_treatment_label, axis=1)
+        st.dataframe(df_cohort, use_container_width=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Baseline vs Post-Treatment LDL-C by Treatment Group**")
+            st.scatter_chart(df_cohort, x="baseline_ldl", y="post_ldl", color="Treatment")
+            
+        with col2:
+            st.markdown(t("chart_age", lang))
+            age_counts = df_cohort['age'].value_counts().sort_index()
+            st.bar_chart(age_counts)
+            
     else:
-        colors.append("#ef5350")
-ax.barh(df[t("col_step", lang)], df[t("col_predicted", lang)], color=colors)
-ax.axvline(
-    result["target"], linestyle="--", color="black",
-    label=f"{t('target_legend', lang)} {result['target']:.0f}",
-)
-ax.invert_yaxis()
-ax.set_xlabel(t("x_axis", lang))
-ax.legend(loc="lower right")
-st.pyplot(fig)
-
-with st.expander(t("show_table", lang)):
-    st.dataframe(df.style.format({t("col_predicted", lang): "{:.1f}"}), width="stretch")
-
-st.divider()
-st.caption(t(
-    "model_caption", lang,
-    mae=bundle["metrics"]["mae"], r2=bundle["metrics"]["r2"], n=bundle["metrics"]["n_test"],
-))
-st.caption(t("disclaimer", lang))
+        st.warning(t("dataset_not_found", lang))

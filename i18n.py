@@ -14,6 +14,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "vi": "Công cụ gợi ý điều trị hạ lipid theo bậc — ESC/EAS 2025 (statin + ezetimibe)",
     },
     "language": {"en": "Language", "vi": "Ngôn ngữ"},
+    "tab_calculator": {"en": "Clinical Calculator", "vi": "Máy tính lâm sàng"},
+    "tab_dataset": {"en": "Dataset Explorer", "vi": "Khám phá dữ liệu"},
 
     # ---- Sidebar ----
     "patient_input": {"en": "Patient input", "vi": "Thông tin bệnh nhân"},
@@ -61,6 +63,20 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "disclaimer": {
         "en": "Educational demo for the ESC/EAS 2025 Focused Update — not for clinical use.",
         "vi": "Demo phục vụ học tập theo ESC/EAS 2025 — không dùng cho lâm sàng.",
+    },
+
+    # ---- Dataset Explorer ----
+    "dataset_desc": {
+        "en": "This cohort dataset contains 2,000 synthetic patient records (8,000 observations across therapeutic steps) simulating lipid-lowering responses under various regimens (statin, ezetimibe, PCSK9 inhibitors, and bempedoic acid) based on the ESC/EAS 2025 guidelines.",
+        "vi": "Tập dữ liệu này chứa thông tin của 2.000 hồ sơ bệnh nhân giả lập (8.000 lượt quan sát qua các bậc điều trị) mô phỏng phản ứng hạ lipid dưới các phác đồ khác nhau (statin, ezetimibe, chất ức chế PCSK9, và axit bempedoic) dựa trên hướng dẫn ESC/EAS 2025.",
+    },
+    "chart_age": {
+        "en": "**Age Distribution in the Cohort**",
+        "vi": "**Phân bố độ tuổi trong tập dữ liệu**",
+    },
+    "dataset_not_found": {
+        "en": "Cohort dataset file not found. It will be generated automatically when you load the Clinical Calculator.",
+        "vi": "Không tìm thấy file dữ liệu đoàn hệ. Tập dữ liệu sẽ tự động được tạo khi bạn mở Máy tính lâm sàng.",
     },
 
     # ---- Risk categories ----
