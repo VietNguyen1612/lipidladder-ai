@@ -60,10 +60,14 @@ with st.sidebar:
 
     case_names = [t("blank", lang)] + [c["name"] for c in cases]
     chosen_case = st.selectbox(t("preloaded_case", lang), case_names, index=1)
+    case_explanation = None
     if chosen_case != t("blank", lang):
         case = next(c for c in cases if c["name"] == chosen_case)
         st.info(case["summary"])
         defaults = case["patient"]
+        explanation = case.get("explanation")
+        if explanation:
+            case_explanation = explanation.get(lang) or explanation.get("en")
     else:
         defaults = {
             "age": 55, "sex": "M", "baseline_ldl": 150,
@@ -98,6 +102,10 @@ with st.sidebar:
 tab_calc, tab_dataset = st.tabs([t("tab_calculator", lang), t("tab_dataset", lang)])
 
 with tab_calc:
+    if case_explanation:
+        with st.expander(t("case_explanation", lang), expanded=True):
+            st.markdown(case_explanation)
+
     # ---------- build patient + run recommendation ----------
     patient = Patient(
         age=age, sex=sex, baseline_ldl=baseline_ldl, smoker=smoker, diabetes=diabetes,

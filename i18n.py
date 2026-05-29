@@ -21,6 +21,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "patient_input": {"en": "Patient input", "vi": "Thông tin bệnh nhân"},
     "preloaded_case": {"en": "Pre-loaded case", "vi": "Ca lâm sàng có sẵn"},
     "blank": {"en": "(blank)", "vi": "(trống)"},
+    "case_explanation": {
+        "en": "📖 Case explanation — understand this scenario",
+        "vi": "📖 Giải thích ca lâm sàng — hiểu rõ tình huống",
+    },
     "age": {"en": "Age", "vi": "Tuổi"},
     "sex": {"en": "Sex", "vi": "Giới tính"},
     "sex_M": {"en": "M", "vi": "Nam"},
